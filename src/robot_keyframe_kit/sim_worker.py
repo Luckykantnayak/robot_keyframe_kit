@@ -521,9 +521,13 @@ class SimWorker(threading.Thread):
             aligned_torso_t[2, 3] -= dz
             
             self.data.qpos[:3] = aligned_torso_t[:3, 3]
-            self.data.qpos[3:7] = R.from_matrix(aligned_torso_t[:3, :3]).as_quat(
-                scalar_first=True
-            )
+            rot = R.from_matrix(aligned_torso_t[:3, :3])
+            try:
+                quat = rot.as_quat(scalar_first=True)
+            except TypeError:
+                quat = np.roll(rot.as_quat(), 1)  # xyzw → wxyz
+            self.data.qpos[3:7] = quat
+
             self._forward()
             print(
                 f"[Ground] Placed robot on ground (moved down {dz:.4f}m, lowest geom was at z={lowest_z:.4f}m)",
